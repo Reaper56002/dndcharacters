@@ -1,3 +1,5 @@
+// d2interpret.js — Final Version with FizzBuzz Easter Egg, charactersearch, and deletecharacter
+
 const fs = require("fs");
 const readline = require("readline");
 const path = require("path");
@@ -54,9 +56,9 @@ const classes = {
         grenades: ["Magnetic", "Suppressor", "Voidwall"],
         abilities: [
           { level: 1, name: "Sentinel Shield", desc: "Void shield for defense or offense." },
-          { level: 3, name: "Shield Throw", desc: "Throw your shield to ricochet between enemies." },
-          { level: 6, name: "Defensive Strike", desc: "Melee shield buff for allies." },
-          { level: 10, name: "Ward of Dawn", desc: "Create an indestructible dome of light." }
+          { level: 3, name: "Shield Throw", desc: "Ricochet throwing shield." },
+          { level: 6, name: "Defensive Strike", desc: "Melee buff for allies." },
+          { level: 10, name: "Ward of Dawn", desc: "Indestructible void dome." }
         ]
       }
     }
@@ -131,12 +133,22 @@ function displayCharacterSheet(character) {
     const mod = getModifier(score);
     console.log(`  ${ability}: ${score} (${formatMod(mod)})`);
   }
+
+  if (character.name.toLowerCase() === "fizzbuzz") {
+    console.log("\nThe lord of counting awaits...\n");
+    for (let i = 1; i <= 100; i++) {
+      if (i % 15 === 0) console.log("FizzBuzz");
+      else if (i % 3 === 0) console.log("Fizz");
+      else if (i % 5 === 0) console.log("Buzz");
+      else console.log(i);
+    }
+  }
+
   console.log("");
 }
 
 function saveCharacter(character) {
   if (!fs.existsSync(SAVE_DIR)) fs.mkdirSync(SAVE_DIR);
-
   const timestamp = Date.now();
   const filename = `${character.name}_${timestamp}.json`;
   const filepath = path.join(SAVE_DIR, filename);
@@ -165,16 +177,9 @@ async function interpretCharacterBlock(lines) {
 }
 
 async function runCharacterSearch() {
-  if (!fs.existsSync(SAVE_DIR)) {
-    console.log("No saved characters found.");
-    return;
-  }
-
+  if (!fs.existsSync(SAVE_DIR)) return console.log("No saved characters found.");
   const files = fs.readdirSync(SAVE_DIR).filter(f => f.endsWith(".json"));
-  if (files.length === 0) {
-    console.log("No saved characters found.");
-    return;
-  }
+  if (files.length === 0) return console.log("No saved characters found.");
 
   console.log("\nSaved Characters:");
   files.forEach((file, index) => {
@@ -184,21 +189,43 @@ async function runCharacterSearch() {
 
   const choice = parseInt(await promptInput("\nEnter character number: "), 10);
   const selectedFile = files[choice - 1];
-  if (!selectedFile) {
-    console.log("Invalid selection.");
-    return;
-  }
+  if (!selectedFile) return console.log("Invalid selection.");
 
   const character = JSON.parse(fs.readFileSync(path.join(SAVE_DIR, selectedFile)));
   displayCharacterSheet(character);
 }
 
+async function runCharacterDelete() {
+  if (!fs.existsSync(SAVE_DIR)) return console.log("No saved characters found.");
+  const files = fs.readdirSync(SAVE_DIR).filter(f => f.endsWith(".json"));
+  if (files.length === 0) return console.log("No saved characters found.");
+
+  console.log("\nSaved Characters:");
+  files.forEach((file, index) => {
+    const parsed = JSON.parse(fs.readFileSync(path.join(SAVE_DIR, file)));
+    console.log(`  [${index + 1}] ${parsed.name} (Level ${parsed.level})`);
+  });
+
+  const choice = parseInt(await promptInput("\nEnter number of the character to delete: "), 10);
+  const selectedFile = files[choice - 1];
+  if (!selectedFile) return console.log("Invalid selection.");
+
+  const fullPath = path.join(SAVE_DIR, selectedFile);
+  const character = JSON.parse(fs.readFileSync(fullPath));
+  console.log(`\nYou selected: ${character.name} (Level ${character.level})`);
+
+  const confirmDelete = (await promptInput("Are you sure you want to delete this character? (y/n): ")).toLowerCase();
+  if (confirmDelete === "y") {
+    fs.unlinkSync(fullPath);
+    console.log("Character deleted.");
+  } else {
+    console.log("Character not deleted.");
+  }
+}
+
 async function runInterpreter(file) {
   const content = fs.readFileSync(file, "utf8");
-  const lines = content
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const lines = content.split("\n").map(line => line.trim()).filter(Boolean);
 
   const characterBlock = [];
   let inCharacter = false;
@@ -219,17 +246,18 @@ async function runInterpreter(file) {
 (async () => {
   const arg = process.argv[2];
   if (!arg) {
-    console.error("Usage: node d2interpret.js file.dnd OR node d2interpret.js charactersearch");
+    console.error("Usage: node d2interpret.js file.dnd | charactersearch | deletecharacter");
     process.exit(1);
   }
 
   if (arg === "charactersearch") {
     await runCharacterSearch();
+  } else if (arg === "deletecharacter") {
+    await runCharacterDelete();
   } else {
     await runInterpreter(arg);
   }
 })();
-
 
 
 
