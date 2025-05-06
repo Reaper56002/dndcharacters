@@ -3,47 +3,69 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DnDCharacters</title>
+  <title>DnDCharacters – ReapersDestiny</title>
   <style>
     body {
-      font-family: sans-serif;
-      background-color: #1e1e1e;
-      color: #f5f5f5;
+      font-family: "Segoe UI", sans-serif;
+      background-color: beige;
+      color: #222;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 2rem;
     }
     h1 {
-      color: #00ffcc;
+      color: #663300;
     }
-    a.button {
+    .button {
       display: inline-block;
-      margin: 1rem;
+      margin: 0.5rem;
       padding: 0.75rem 1.5rem;
-      background-color: #00ffcc;
-      color: #1e1e1e;
+      background-color: #cc9966;
+      color: white;
       border-radius: 5px;
       text-decoration: none;
       font-weight: bold;
       transition: 0.3s;
     }
-    a.button:hover {
-      background-color: #00ccaa;
+    .button:hover {
+      background-color: #996633;
+    }
+    pre {
+      background-color: #f5f5dc;
+      padding: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      max-width: 600px;
+      overflow-x: auto;
+      font-family: monospace;
     }
     footer {
       margin-top: 2rem;
       font-size: 0.9rem;
-      color: #888;
+      color: #666;
     }
   </style>
 </head>
 <body>
-  <h1>DnDCharacters</h1>
-  <p>A custom character manager and language system for Dungeons & Dragons + Destiny fusion.</p>
+  <h1>DnDCharacters – ReapersDestiny</h1>
+  <p>A custom scripting language and character manager inspired by Destiny and Dungeons & Dragons.</p>
 
-  <a class="button" href="https://github.com/Reaper56002/dndcharacters">View on GitHub</a>
+  <div>
+    <a class="button" href="https://github.com/Reaper56002/dndcharacters">GitHub Repo</a>
+    <a class="button" href="d2interpret.js">Interpreter (d2interpret.js)</a>
+    <a class="button" href="gunslinger.dnd">Sample: Gunslinger</a>
+    <a class="button" href="titan.dnd">Sample: Titan</a>
+  </div>
 
-  <footer>Created by Reaper56002</footer>
+  <h2>Sample Code</h2>
+  <pre><code>
+CLASS hunter GUNSLINGER;
+RACE human;
+STATS 15 14 13 12 10 8;
+FEATURE quickdraw;
+  </code></pre>
+
+  <footer>Created by Reaper56002 – Powered by GitHub Pages</footer>
 </body>
 </html>
