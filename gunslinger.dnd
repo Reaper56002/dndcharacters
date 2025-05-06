@@ -1,0 +1,8 @@
+character {
+  name: "Cayde"
+  race: Human
+  class: Hunter
+  subclass: Gunslinger
+  roll_stats
+}
+

@@ -1,0 +1,15 @@
+{
+  "name": "Thalia",
+  "race": "Human",
+  "class": "Titan",
+  "subclass": "Sentinel",
+  "level": 7,
+  "stats": {
+    "STR": 11,
+    "DEX": 14,
+    "CON": 9,
+    "INT": 12,
+    "WIS": 8,
+    "CHA": 13
+  }
+}

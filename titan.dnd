@@ -1,0 +1,8 @@
+character {
+  name: "Thalia"
+  race: Human
+  class: Titan
+  subclass: Sentinel
+  roll_stats
+}
+
