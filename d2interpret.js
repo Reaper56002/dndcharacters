@@ -1,4 +1,4 @@
-// d2interpret.js — FINAL FULL VERSION (All Commands Integrated and Working)
+// d2interpret.js imposter mode go
 
 const fs = require("fs");
 const readline = require("readline");
