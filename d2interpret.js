@@ -1,10 +1,11 @@
-// d2interpret.js — Final Version with FizzBuzz Easter Egg, charactersearch, and deletecharacter
+// d2interpret.js — FINAL FULL VERSION (All Commands Integrated and Working)
 
 const fs = require("fs");
 const readline = require("readline");
 const path = require("path");
 
 const SAVE_DIR = "saved_characters";
+const abilityList = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
 
 const traits = {
   Human: {
@@ -64,8 +65,6 @@ const classes = {
     }
   }
 };
-
-const abilityList = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
 
 function rollDice() {
   return Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1);
@@ -143,37 +142,29 @@ function displayCharacterSheet(character) {
       else console.log(i);
     }
   }
-
   console.log("");
 }
 
-function saveCharacter(character) {
-  if (!fs.existsSync(SAVE_DIR)) fs.mkdirSync(SAVE_DIR);
-  const timestamp = Date.now();
-  const filename = `${character.name}_${timestamp}.json`;
-  const filepath = path.join(SAVE_DIR, filename);
-  fs.writeFileSync(filepath, JSON.stringify(character, null, 2));
-  console.log(`Character saved to: ${filepath}`);
-}
+async function runInterpreter(file) {
+  const text = fs.readFileSync(file, "utf-8");
+  const lines = text.split(/\r?\n/);
+  const character = { name: "", race: "", class: "", subclass: "", level: 1, stats: {} };
 
-async function interpretCharacterBlock(lines) {
-  const character = {};
-  let rollStats = false;
-
-  for (const line of lines) {
-    if (line.trim() === "roll_stats") {
-      rollStats = true;
-    } else {
-      const [key, value] = line.split(":").map(s => s.trim().replace(/["']/g, ""));
-      character[key] = value;
-    }
+  for (let line of lines) {
+    line = line.trim();
+    if (line.startsWith("name:")) character.name = line.split(":")[1].trim();
+    else if (line.startsWith("race:")) character.race = line.split(":")[1].trim();
+    else if (line.startsWith("class:")) character.class = line.split(":")[1].trim();
+    else if (line.startsWith("subclass:")) character.subclass = line.split(":")[1].trim();
   }
 
-  character.level = parseInt(await promptInput("Enter character level: "), 10);
-  character.stats = rollStats ? await rollStatsInteractive() : {};
+  character.level = parseInt(await promptInput("Enter level: "));
+  character.stats = await rollStatsInteractive();
 
+  if (!fs.existsSync(SAVE_DIR)) fs.mkdirSync(SAVE_DIR);
+  const filename = `${character.name.replace(/\s+/g, "_")}_${Date.now()}.json`;
+  fs.writeFileSync(path.join(SAVE_DIR, filename), JSON.stringify(character, null, 2));
   displayCharacterSheet(character);
-  saveCharacter(character);
 }
 
 async function runCharacterSearch() {
@@ -191,8 +182,38 @@ async function runCharacterSearch() {
   const selectedFile = files[choice - 1];
   if (!selectedFile) return console.log("Invalid selection.");
 
-  const character = JSON.parse(fs.readFileSync(path.join(SAVE_DIR, selectedFile)));
-  displayCharacterSheet(character);
+  const fullPath = path.join(SAVE_DIR, selectedFile);
+  let character = JSON.parse(fs.readFileSync(fullPath));
+
+  let exitMenu = false;
+  while (!exitMenu) {
+    console.log("\n1. View Character\n2. Reroll Stats\n3. Edit Stats\n4. Edit Name\n5. Exit");
+    const action = await promptInput("Choose an option: ");
+
+    if (action === "1") {
+      displayCharacterSheet(character);
+    } else if (action === "2") {
+      character.stats = await rollStatsInteractive();
+      console.log("Stats rerolled.");
+    } else if (action === "3") {
+      for (const ability of abilityList) {
+        const newVal = await promptInput(`Enter new value for ${ability} (current ${character.stats[ability]}): `);
+        const parsed = parseInt(newVal);
+        if (!isNaN(parsed)) character.stats[ability] = parsed;
+      }
+      console.log("Stats updated.");
+    } else if (action === "4") {
+      const newName = await promptInput("Enter new character name: ");
+      character.name = newName;
+      console.log("Name updated.");
+    } else if (action === "5") {
+      fs.writeFileSync(fullPath, JSON.stringify(character, null, 2));
+      console.log("Changes saved. Exiting.");
+      exitMenu = true;
+    } else {
+      console.log("Invalid choice.");
+    }
+  }
 }
 
 async function runCharacterDelete() {
@@ -206,47 +227,70 @@ async function runCharacterDelete() {
     console.log(`  [${index + 1}] ${parsed.name} (Level ${parsed.level})`);
   });
 
-  const choice = parseInt(await promptInput("\nEnter number of the character to delete: "), 10);
+  const choice = parseInt(await promptInput("\nEnter character number to delete: "), 10);
   const selectedFile = files[choice - 1];
   if (!selectedFile) return console.log("Invalid selection.");
 
-  const fullPath = path.join(SAVE_DIR, selectedFile);
-  const character = JSON.parse(fs.readFileSync(fullPath));
-  console.log(`\nYou selected: ${character.name} (Level ${character.level})`);
-
-  const confirmDelete = (await promptInput("Are you sure you want to delete this character? (y/n): ")).toLowerCase();
-  if (confirmDelete === "y") {
-    fs.unlinkSync(fullPath);
+  const confirm = await promptInput("Are you sure you want to delete this character? (y/n): ");
+  if (confirm.toLowerCase() === "y") {
+    fs.unlinkSync(path.join(SAVE_DIR, selectedFile));
     console.log("Character deleted.");
   } else {
-    console.log("Character not deleted.");
+    console.log("Deletion cancelled.");
   }
 }
 
-async function runInterpreter(file) {
-  const content = fs.readFileSync(file, "utf8");
-  const lines = content.split("\n").map(line => line.trim()).filter(Boolean);
+async function runFightForever() {
+  if (!fs.existsSync(SAVE_DIR)) return console.log("No saved characters to fight.");
+  const files = fs.readdirSync(SAVE_DIR).filter(f => f.endsWith(".json"));
+  if (files.length === 0) return console.log("No saved characters to fight.");
 
-  const characterBlock = [];
-  let inCharacter = false;
+  const randomFile = files[Math.floor(Math.random() * files.length)];
+  const fullPath = path.join(SAVE_DIR, randomFile);
+  let character = JSON.parse(fs.readFileSync(fullPath));
 
-  for (const line of lines) {
-    if (line.startsWith("character {")) {
-      inCharacter = true;
-    } else if (line === "}") {
-      await interpretCharacterBlock(characterBlock);
-      inCharacter = false;
-    } else if (inCharacter) {
-      characterBlock.push(line);
+  console.log(`\nSummoning ${character.name}...`);
+  const roll = Math.floor(Math.random() * 20) + 1;
+  console.log(`Rolled a ${roll} on a d20!`);
+
+  const originalStats = { ...character.stats };
+
+  if (roll === 1) {
+    fs.unlinkSync(fullPath);
+    console.log(`*** CRITICAL FAILURE ***\n${character.name} has been lost to the void.`);
+    return;
+  } else if (roll >= 2 && roll <= 10) {
+    abilityList.forEach(stat => character.stats[stat] = Math.max(1, character.stats[stat] - 5));
+    console.log(`${character.name} suffers great loss... All stats reduced by 5.`);
+  } else if (roll >= 11 && roll <= 19) {
+    abilityList.forEach(stat => character.stats[stat] += 5);
+    console.log(`${character.name} emerges stronger! All stats increased by 5.`);
+  } else if (roll === 20) {
+    if (character.level < 20) {
+      character.level++;
+      console.log(`${character.name} ascends! Level increased to ${character.level}.`);
+    } else {
+      console.log(`${character.name} is already at the pinnacle (level 20).`);
     }
   }
+
+  fs.writeFileSync(fullPath, JSON.stringify(character, null, 2));
+  console.log("\nStat Changes:");
+  console.log("ABILITY | BEFORE | AFTER");
+  console.log("------------------------");
+  for (const ability of abilityList) {
+    const before = originalStats[ability];
+    const after = character.stats[ability];
+    console.log(`${ability.padEnd(6)} | ${String(before).padEnd(6)} | ${after}`);
+  }
+  displayCharacterSheet(character);
 }
 
-// ENTRY
+// CLI Entry
 (async () => {
   const arg = process.argv[2];
   if (!arg) {
-    console.error("Usage: node d2interpret.js file.dnd | charactersearch | deletecharacter");
+    console.error("Usage: node d2interpret.js file.dnd | charactersearch | deletecharacter | fightforever");
     process.exit(1);
   }
 
@@ -254,10 +298,14 @@ async function runInterpreter(file) {
     await runCharacterSearch();
   } else if (arg === "deletecharacter") {
     await runCharacterDelete();
+  } else if (arg === "fightforever") {
+    await runFightForever();
   } else {
     await runInterpreter(arg);
   }
 })();
+
+
 
 
 
